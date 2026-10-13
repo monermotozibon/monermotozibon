@@ -1,164 +1,255 @@
-
-const songs = [
+const videos = [
   {
     title: "Tomay Bujhte Parini",
     category: "Emotional Bengali Song",
     brand: "Z MELODY",
+    symbol: "♫",
+    style: "video-purple",
     url: "https://www.youtube.com/",
-    color: "from-violet-200 to-pink-100",
-    symbol: "♫"
   },
   {
     title: "Bengali Love Songs",
     category: "Love & Lo-fi Music",
     brand: "Z MELODY",
+    symbol: "♪",
+    style: "video-pink",
     url: "https://www.youtube.com/",
-    color: "from-blue-100 to-violet-200",
-    symbol: "♪"
   },
   {
     title: "Moner Kotha",
     category: "Emotional Reels",
     brand: "MONER MOTO ZIBON",
+    symbol: "♡",
+    style: "video-rose",
     url: "https://www.facebook.com/",
-    color: "from-pink-100 to-orange-100",
-    symbol: "♡"
   },
   {
     title: "Motivational Moments",
     category: "Quotes & Inspiration",
     brand: "MONER MOTO ZIBON",
+    symbol: "✦",
+    style: "video-blue",
     url: "https://www.facebook.com/",
-    color: "from-amber-100 to-rose-100",
-    symbol: "✦"
-  }
+  },
 ];
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-10 border-b border-violet-100 bg-white/95">
-        <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <a href="#" className="text-lg font-black tracking-tight">
-            MMZ <span className="text-violet-600">×</span> Z MELODY
-          </a>
-          <div className="hidden gap-6 text-sm font-medium sm:flex">
-            <a href="#home">Home</a>
-            <a href="#music">Z MELODY</a>
-            <a href="#moner">Moner Moto Zibon</a>
-          </div>
-          <a href="#latest" className="rounded-full bg-violet-600 px-4 py-2 text-sm font-semibold text-white">
-            Explore
-          </a>
+    <main>
+      <header className="site-header">
+        <a className="logo" href="#home">
+          <span className="logo-icon">MZ</span>
+          <span>
+            <strong>MONER MOTO ZIBON</strong>
+            <small>× Z MELODY</small>
+          </span>
+        </a>
+
+        <nav className="navigation">
+          <a href="#home">Home</a>
+          <a href="#music">Z MELODY</a>
+          <a href="#moner">Moner Moto Zibon</a>
+          <a href="#videos">Videos</a>
         </nav>
+
+        <a className="header-button" href="#videos">
+          Explore Now <span>↗</span>
+        </a>
       </header>
 
-      <section id="home" className="bg-gradient-to-br from-violet-50 via-white to-pink-50">
-        <div className="mx-auto grid max-w-6xl items-center gap-8 px-5 py-20 md:grid-cols-2 md:py-28">
-          <div>
-            <p className="mb-4 font-bold uppercase tracking-[0.2em] text-violet-600">
-              Music · Emotions · Creativity
-            </p>
-            <h1 className="text-4xl font-black leading-tight md:text-6xl">
-              Feel Every Emotion.
-              <span className="mt-2 block text-violet-600">
-                Express Every Feeling.
-              </span>
-            </h1>
-            <p className="mt-5 max-w-lg leading-7 text-slate-600">
-              Dil se nikle Bengali gaane, emotional quotes aur aapke pasandida videos — sab ek hi jagah.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#music" className="rounded-full bg-violet-600 px-6 py-3 font-bold text-white">
-                Explore Music →
-              </a>
-              <a href="#moner" className="rounded-full border border-violet-200 bg-white px-6 py-3 font-bold text-violet-700">
-                Discover Reels
-              </a>
+      <section className="hero" id="home">
+        <div className="hero-glow glow-one" />
+        <div className="hero-glow glow-two" />
+
+        <div className="hero-content">
+          <div className="eyebrow">
+            <span className="eyebrow-dot" />
+            MUSIC · EMOTIONS · CREATIVITY
+          </div>
+
+          <h1>
+            Feel Every
+            <br />
+            Emotion<span className="purple-text">.</span>
+            <br />
+            <span className="gradient-text">Express Every Feeling.</span>
+          </h1>
+
+          <p className="hero-description">
+            Dil se nikle Bengali gaane, emotional quotes aur aapke favourite
+            videos — sab ek hi jagah. Welcome to our creative world!
+          </p>
+
+          <div className="hero-actions">
+            <a className="button-primary" href="#music">
+              ♫ Explore Music
+            </a>
+            <a className="button-secondary" href="#moner">
+              Discover Reels <span>→</span>
+            </a>
+          </div>
+
+          <div className="hero-note">
+            <span className="note-heart">♥</span>
+            Made with love, for every emotion.
+          </div>
+        </div>
+
+        <div className="hero-art">
+          <div className="art-orbit orbit-one" />
+          <div className="art-orbit orbit-two" />
+          <div className="art-card">
+            <div className="art-top">
+              <span className="art-label">OUR CREATIVE WORLD</span>
+              <span className="art-star">✦</span>
+            </div>
+            <div className="art-symbol">♫</div>
+            <div className="art-title">Two Brands.</div>
+            <div className="art-title art-title-gradient">One Heart.</div>
+            <p>Music that touches the soul.</p>
+            <div className="art-tags">
+              <span>♪ Bengali Music</span>
+              <span>♡ Emotions</span>
             </div>
           </div>
-          <div className="rounded-[2rem] bg-gradient-to-br from-violet-200 via-pink-100 to-orange-100 p-8 text-center shadow-xl shadow-violet-100">
-            <div className="text-8xl text-violet-700">♫ ♪ ♡</div>
-            <p className="mt-5 text-2xl font-black">Two Brands. One World.</p>
-            <p className="mt-2 text-slate-600">Your music, your emotions, your story.</p>
-          </div>
+          <div className="floating-bubble bubble-heart">♡</div>
+          <div className="floating-bubble bubble-music">♫</div>
+          <div className="floating-bubble bubble-star">✦</div>
         </div>
       </section>
 
-      <section id="latest" className="mx-auto max-w-6xl px-5 py-16">
-        <div className="mb-8">
-          <p className="font-bold text-violet-600">FRESH CONTENT</p>
-          <h2 className="mt-2 text-3xl font-black">Latest Videos</h2>
-          <p className="mt-2 text-slate-600">
-            Thumbnail par click karke video platform kholen.
-          </p>
+      <section className="brand-strip">
+        <div>
+          <span className="strip-icon strip-purple">♫</span>
+          <span>
+            <strong>Z MELODY</strong>
+            <small>Bengali Music & Lo-fi</small>
+          </span>
+        </div>
+        <div>
+          <span className="strip-icon strip-pink">♡</span>
+          <span>
+            <strong>MONER MOTO ZIBON</strong>
+            <small>Quotes, Reels & Feelings</small>
+          </span>
+        </div>
+        <div>
+          <span className="strip-icon strip-peach">✦</span>
+          <span>
+            <strong>ONE PLATFORM</strong>
+            <small>Two creative identities</small>
+          </span>
+        </div>
+      </section>
+
+      <section className="content-section" id="videos">
+        <div className="section-heading">
+          <div>
+            <span className="section-kicker">HANDPICKED FOR YOU</span>
+            <h2>Latest <span className="gradient-text">Videos.</span></h2>
+            <p>Listen, watch and feel every moment.</p>
+          </div>
+          <a className="text-link" href="#music">
+            Explore all content <span>↗</span>
+          </a>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {songs.map((song) => (
+        <div className="video-grid">
+          {videos.map((video) => (
             <a
-              key={song.title}
-              href={song.url}
+              className="video-card"
+              href={video.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              key={video.title}
             >
-              <div className={`flex aspect-video items-center justify-center bg-gradient-to-br ${song.color}`}>
-                <span className="text-7xl text-violet-700 transition group-hover:scale-110">
-                  {song.symbol}
-                </span>
+              <div className={`video-art ${video.style}`}>
+                <span className="video-brand">{video.brand}</span>
+                <span className="video-symbol">{video.symbol}</span>
+                <span className="play-button">▶</span>
+                <span className="video-art-caption">{video.title}</span>
               </div>
-              <div className="p-4">
-                <p className="text-xs font-bold tracking-wider text-violet-600">
-                  {song.brand}
-                </p>
-                <h3 className="mt-2 font-bold">{song.title}</h3>
-                <p className="mt-1 text-sm text-slate-500">{song.category}</p>
-                <p className="mt-4 text-sm font-bold text-violet-700">
-                  Watch Video ↗
-                </p>
+              <div className="video-info">
+                <span className="video-category">{video.category}</span>
+                <h3>{video.title}</h3>
+                <span className="watch-link">Watch Video <span>↗</span></span>
               </div>
             </a>
           ))}
         </div>
+        <p className="demo-note">
+          Note: Abhi cards sample links use karte hain. Baad mein inmein aapke
+          actual YouTube aur Facebook video links add karenge.
+        </p>
       </section>
 
-      <section id="music" className="bg-violet-50 px-5 py-14">
-        <div className="mx-auto max-w-6xl">
-          <p className="font-bold text-violet-600">MUSIC THAT TOUCHES THE HEART</p>
-          <h2 className="mt-2 text-3xl font-black">Z MELODY 🎵</h2>
-          <p className="mt-3 max-w-2xl leading-7 text-slate-600">
+      <section className="feature-section" id="music">
+        <div className="feature-art music-feature-art">
+          <span className="feature-big-symbol">♫</span>
+          <span className="feature-small-label">FEEL THE MUSIC</span>
+          <span className="feature-deco deco-one">♪</span>
+          <span className="feature-deco deco-two">✦</span>
+        </div>
+        <div className="feature-copy">
+          <span className="section-kicker">MUSIC THAT TOUCHES THE HEART</span>
+          <h2>Z MELODY <span>🎵</span></h2>
+          <p>
             Bengali love songs, emotional sad songs aur relaxing lo-fi music.
-            Apne latest songs yahan feature karein.
+            Har dhun mein ek kahani, har gaane mein ek ehsaas.
           </p>
-          <a href="#latest" className="mt-6 inline-block rounded-full bg-violet-600 px-6 py-3 font-bold text-white">
-            Explore Songs →
+          <a
+            className="button-primary"
+            href="https://www.youtube.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Visit YouTube Channel ↗
           </a>
         </div>
       </section>
 
-      <section id="moner" className="mx-auto max-w-6xl px-5 py-14">
-        <p className="font-bold text-pink-600">WORDS FROM THE HEART</p>
-        <h2 className="mt-2 text-3xl font-black">Moner Moto Zibon ❤️</h2>
-        <p className="mt-3 max-w-2xl leading-7 text-slate-600">
-          Emotional Bengali quotes, motivational thoughts, comedy lines aur Facebook Reels.
-          Apni pasand ke moments yahan dekhein.
-        </p>
-        <a href="#latest" className="mt-6 inline-block rounded-full border border-pink-200 px-6 py-3 font-bold text-pink-700">
-          Explore Reels →
-        </a>
+      <section className="feature-section feature-reverse" id="moner">
+        <div className="feature-art heart-feature-art">
+          <span className="feature-big-symbol">♡</span>
+          <span className="feature-small-label">WORDS FROM THE HEART</span>
+          <span className="feature-deco deco-one">✦</span>
+          <span className="feature-deco deco-two">♥</span>
+        </div>
+        <div className="feature-copy">
+          <span className="section-kicker pink-kicker">FEELINGS · THOUGHTS · STORIES</span>
+          <h2>Moner Moto <span className="pink-text">Zibon.</span></h2>
+          <p>
+            Emotional Bengali quotes, motivational thoughts, comedy lines aur
+            Facebook Reels — dil ki baatein, apne andaaz mein.
+          </p>
+          <a
+            className="button-pink"
+            href="https://www.facebook.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Visit Facebook Page ↗
+          </a>
+        </div>
       </section>
 
-      <footer className="bg-slate-950 px-5 py-10 text-center text-white">
-        <p className="text-xl font-black">Moner Moto Zibon × Z MELODY</p>
-        <p className="mt-3 text-sm text-slate-400">
-          Made with ❤️ for music and emotions.
-        </p>
-        <p className="mt-5 text-xs text-slate-500">
-          © {new Date().getFullYear()} All rights reserved.
-        </p>
+      <section className="closing-banner">
+        <div className="closing-heart">♡</div>
+        <h2>Every song has a story.</h2>
+        <p>Every feeling deserves to be heard.</p>
+        <a className="button-white" href="#videos">Explore Our World ↗</a>
+      </section>
+
+      <footer className="site-footer">
+        <a className="footer-logo" href="#home">MONER MOTO ZIBON <span>×</span> Z MELODY</a>
+        <p>Made with <span className="footer-heart">♥</span> for music and emotions.</p>
+        <div className="footer-links">
+          <a href="#home">Home</a>
+          <a href="#music">Music</a>
+          <a href="#moner">Reels</a>
+        </div>
+        <small>© {new Date().getFullYear()} Moner Moto Zibon × Z MELODY. All rights reserved.</small>
       </footer>
     </main>
   );
 }
-
