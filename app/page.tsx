@@ -1,28 +1,20 @@
 
 const socialLinks = [
-  { name: "Facebook", url: "https://www.facebook.com/", icon: "f" },
-  { name: "Instagram", url: "https://www.instagram.com/", icon: "◎" },
-  { name: "YouTube", url: "https://www.youtube.com/", icon: "▶" },
+  { name: "Facebook", url: "https://www.facebook.com/" },
+  { name: "Instagram", url: "https://www.instagram.com/" },
+  { name: "YouTube", url: "https://www.youtube.com/" },
 ];
 
 export default function Home() {
   return (
     <main>
       <div className="top-social-bar">
-        <a href="/" className="top-website-link">
-          🌐 Official Website
-        </a>
-
+        <a href="/" className="top-website-link">🌐 Official Website</a>
         <div className="social-links">
           {socialLinks.map((item) => (
-            <a
-              key={item.name}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={item.name}
-            >
-              <span>{item.icon}</span> {item.name}
+            <a key={item.name} href={item.url}
+              target="_blank" rel="noopener noreferrer">
+              {item.name} ↗
             </a>
           ))}
         </div>
@@ -36,7 +28,6 @@ export default function Home() {
             <small>× Z MELODY</small>
           </span>
         </a>
-
         <nav className="navigation">
           <a href="/">Home</a>
           <a href="/moner-moto-zibon">Moner Moto Zibon</a>
@@ -44,23 +35,18 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="hero home-hero" id="home">
+      <section className="hero home-hero">
         <div className="hero-content">
-          <div className="eyebrow">WELCOME TO OUR CREATIVE WORLD</div>
-          <h1>
-            Two Brands.
-            <br />
-            <span className="gradient-text">One Heart.</span>
-          </h1>
+          <span className="section-kicker">WELCOME TO OUR CREATIVE WORLD</span>
+          <h1>Two Brands.<br /><span className="gradient-text">One Heart.</span></h1>
           <p className="hero-description">
-            Bengali music, emotional quotes, beautiful stories and creative
-            videos — explore both of our worlds in one place.
+            Bengali music, emotional quotes, beautiful stories
+            and creative videos — explore both worlds in one place.
           </p>
           <a className="button-primary" href="#our-brands">
             Explore Our Brands ↓
           </a>
         </div>
-
         <div className="hero-art">
           <div className="art-card">
             <div className="art-symbol">♫ ♡</div>
@@ -74,34 +60,26 @@ export default function Home() {
         <div className="brand-choice-heading">
           <span className="section-kicker">CHOOSE YOUR WORLD</span>
           <h2>Explore Our <span className="gradient-text">Brands.</span></h2>
-          <p>Apne pasand ke logo par click karke us brand ka page kholen.</p>
+          <p>Choose a brand to explore its dedicated page.</p>
         </div>
 
         <div className="brand-choice-grid">
           <a className="brand-choice-card moner-brand" href="/moner-moto-zibon">
-            <div className="brand-logo moner-logo">
-              <span>♡</span>
-            </div>
+            <div className="brand-logo moner-logo">♡</div>
             <span className="brand-label">QUOTES · REELS · FEELINGS</span>
             <h3>Moner Moto Zibon</h3>
-            <p>
-              Emotional Bengali quotes, motivational thoughts, comedy lines
-              and Facebook Reels.
-            </p>
-            <span className="brand-open">Enter Moner Moto Zibon →</span>
+            <p>Emotional Bengali quotes, motivational thoughts,
+              comedy lines and Facebook Reels.</p>
+            <span className="brand-open">Explore Moner Moto Zibon →</span>
           </a>
 
           <a className="brand-choice-card melody-brand" href="/z-melody">
-            <div className="brand-logo melody-logo">
-              <span>♫</span>
-            </div>
+            <div className="brand-logo melody-logo">♫</div>
             <span className="brand-label">SONGS · MUSIC · LO-FI</span>
             <h3>Z MELODY</h3>
-            <p>
-              Bengali love songs, emotional sad songs, romantic melodies
-              and relaxing lo-fi music.
-            </p>
-            <span className="brand-open">Enter Z MELODY →</span>
+            <p>Bengali love songs, emotional sad songs,
+              romantic melodies and relaxing lo-fi music.</p>
+            <span className="brand-open">Explore Z MELODY →</span>
           </a>
         </div>
       </section>
@@ -116,7 +94,9 @@ export default function Home() {
       </section>
 
       <footer className="site-footer">
-        <p className="footer-logo">MONER MOTO ZIBON <span>×</span> Z MELODY</p>
+        <p className="footer-logo">
+          MONER MOTO ZIBON <span>×</span> Z MELODY
+        </p>
         <div className="footer-links">
           <a href="/">Home</a>
           <a href="/moner-moto-zibon">Moner Moto Zibon</a>
