@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import type { User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../lib/supabase";
 
 const ADMIN_EMAIL = "zmelody1435@gmail.com";
 
@@ -22,12 +22,62 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
-  const [brand, setBrand] = useState("Moner Moto Zibon");
+  const [brand, setBrand] = useState("Z MELODY");
   const [videos, setVideos] = useState<Video[]>([]);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+
+    async function checkUser() {
+      const { data } = await supabase.auth.getSession();
+
+      if (!active) return;
+
+      const sessionUser = data.session?.user ?? null;
+
+      if (sessionUser?.email === ADMIN_EMAIL) {
+        setUser(sessionUser);
+      } else {
+        setUser(null);
+      }
+
+      setChecking(false);
+    }
+
+    void checkUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      const sessionUser = session?.user ?? null;
+
+      if (sessionUser?.email === ADMIN_EMAIL) {
+        setUser(sessionUser);
+      } else {
+        setUser(null);
+        setVideos([]);
+      }
+
+      setChecking(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (user?.email === ADMIN_EMAIL) {
+      void loadVideos();
+    }
+  }, [user]);
+
   async function loadVideos() {
+    setMessage("");
+
     const { data, error } = await supabase
       .from("videos")
       .select("id, title, url, brand")
@@ -41,159 +91,98 @@ export default function AdminPage() {
     setVideos((data ?? []) as Video[]);
   }
 
-  useEffect(() => {
-    let active = true;
-
-    async function checkSession() {
-      const { data, error } = await supabase.auth.getSession();
-
-      if (!active) return;
-
-      if (error) {
-        setMessage("Login check nahi ho saka.");
-        setChecking(false);
-        return;
-      }
-
-      const currentUser = data.session?.user ?? null;
-
-      if (currentUser?.email === ADMIN_EMAIL) {
-        setUser(currentUser);
-        await loadVideos();
-      } else {
-        if (currentUser) {
-          await supabase.auth.signOut();
-        }
-        setUser(null);
-      }
-
-      if (active) setChecking(false);
-    }
-
-    void checkSession();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!active) return;
-
-        const currentUser = session?.user ?? null;
-
-        if (currentUser?.email === ADMIN_EMAIL) {
-          setUser(currentUser);
-          setTimeout(() => {
-            if (active) void loadVideos();
-          }, 0);
-        } else {
-          setUser(null);
-          setVideos([]);
-        }
-      }
-    );
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
-  async function login(event: FormEvent<HTMLFormElement>) {
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setMessage("");
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-
-      if (error) {
-        setMessage("Login fail hua. Email aur password check karein.");
-      } else if (data.user?.email !== ADMIN_EMAIL) {
-        await supabase.auth.signOut();
-        setMessage("Is account ko admin access nahi hai.");
-      } else {
-        setPassword("");
-        setUser(data.user);
-        setMessage("Login successful!");
-        await loadVideos();
-      }
-    } catch {
-      setMessage("Connection error. Supabase settings check karein.");
-    } finally {
+    if (email.trim().toLowerCase() !== ADMIN_EMAIL) {
+      setMessage("Sirf authorized admin email se login kar sakte hain.");
       setBusy(false);
+      return;
     }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    if (error) {
+      setMessage("Login failed: " + error.message);
+    } else if (data.user?.email !== ADMIN_EMAIL) {
+      await supabase.auth.signOut();
+      setMessage("Is account ko admin access nahi hai.");
+    } else {
+      setUser(data.user);
+      setPassword("");
+      setMessage("Login successful!");
+    }
+
+    setBusy(false);
   }
 
-  async function addVideo(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setMessage("");
-
-    if (!user || user.email !== ADMIN_EMAIL) {
-      setMessage("Pehle admin login karein.");
-      return;
-    }
-
-    const cleanTitle = title.trim();
-    const cleanUrl = url.trim();
-
-    if (!cleanTitle || !cleanUrl) {
-      setMessage("Video title aur link dono zaroori hain.");
-      return;
-    }
-
+  function isAllowedVideoUrl(value: string) {
     try {
-      const parsed = new URL(cleanUrl);
+      const parsed = new URL(value);
       const host = parsed.hostname.toLowerCase();
 
-      const validHost = [
-        "youtube.com",
-        "www.youtube.com",
-        "m.youtube.com",
-        "youtu.be",
-        "www.youtu.be",
-        "facebook.com",
-        "www.facebook.com",
-        "m.facebook.com",
-        "fb.watch",
-        "www.fb.watch",
-      ].includes(host);
+      if (parsed.protocol !== "https:") return false;
 
-      if (parsed.protocol !== "https:" || !validHost) {
-        setMessage("Valid HTTPS YouTube ya Facebook link daalein.");
-        return;
-      }
+      return (
+        host === "youtube.com" ||
+        host.endsWith(".youtube.com") ||
+        host === "youtu.be" ||
+        host === "facebook.com" ||
+        host.endsWith(".facebook.com") ||
+        host === "fb.watch" ||
+        host.endsWith(".fb.watch")
+      );
     } catch {
-      setMessage("Video link sahi nahi hai.");
+      return false;
+    }
+  }
+
+  async function handleAddVideo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
+
+    if (user?.email !== ADMIN_EMAIL) {
+      setMessage("Admin login required.");
+      return;
+    }
+
+    if (!title.trim() || !url.trim()) {
+      setMessage("Title aur video link dono bharo.");
+      return;
+    }
+
+    if (!isAllowedVideoUrl(url.trim())) {
+      setMessage("Valid HTTPS YouTube ya Facebook video link dalo.");
       return;
     }
 
     setBusy(true);
 
-    try {
-      const { error } = await supabase.from("videos").insert({
-        title: cleanTitle,
-        url: cleanUrl,
-        brand,
-      });
+    const { error } = await supabase.from("videos").insert({
+      title: title.trim(),
+      url: url.trim(),
+      brand,
+    });
 
-      if (error) {
-        setMessage("Save error: " + error.message);
-      } else {
-        setTitle("");
-        setUrl("");
-        setMessage("Video database mein save ho gaya!");
-        await loadVideos();
-      }
-    } catch {
-      setMessage("Video save nahi hua. Dobara koshish karein.");
-    } finally {
-      setBusy(false);
+    if (error) {
+      setMessage("Video save nahi hua: " + error.message);
+    } else {
+      setMessage("Video successfully save ho gaya!");
+      setTitle("");
+      setUrl("");
+      await loadVideos();
     }
+
+    setBusy(false);
   }
 
-  async function deleteVideo(id: number) {
-    if (!user || user.email !== ADMIN_EMAIL) return;
+  async function handleDelete(id: number) {
+    if (user?.email !== ADMIN_EMAIL) return;
 
     const confirmed = window.confirm(
       "Kya aap is video ko delete karna chahte hain?"
@@ -204,227 +193,327 @@ export default function AdminPage() {
     setBusy(true);
     setMessage("");
 
-    try {
-      const { error } = await supabase
-        .from("videos")
-        .delete()
-        .eq("id", id);
+    const { error } = await supabase
+      .from("videos")
+      .delete()
+      .eq("id", id);
 
-      if (error) {
-        setMessage("Delete error: " + error.message);
-      } else {
-        setMessage("Video delete ho gaya.");
-        await loadVideos();
-      }
-    } catch {
-      setMessage("Video delete nahi hua.");
-    } finally {
-      setBusy(false);
+    if (error) {
+      setMessage("Delete nahi hua: " + error.message);
+    } else {
+      setMessage("Video delete ho gaya.");
+      await loadVideos();
     }
+
+    setBusy(false);
   }
 
-  async function logout() {
-    await supabase.auth.signOut();
-    setUser(null);
-    setVideos([]);
-    setPassword("");
-    setMessage("Logout ho gaya.");
+  async function handleLogout() {
+    setBusy(true);
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setMessage("Logout failed: " + error.message);
+    } else {
+      setUser(null);
+      setVideos([]);
+      setMessage("Logout successful.");
+    }
+
+    setBusy(false);
   }
 
-  const fieldStyle = {
-    display: "block",
-    width: "100%",
-    boxSizing: "border-box" as const,
-    padding: "12px",
-    marginTop: "8px",
-    marginBottom: "18px",
-    borderRadius: "8px",
-    border: "1px solid #57466f",
-    background: "#130e22",
-    color: "#ffffff",
-  };
+  if (checking) {
+    return (
+      <main style={styles.page}>
+        <p>Checking admin login...</p>
+      </main>
+    );
+  }
 
-  const buttonStyle = {
-    padding: "12px 18px",
-    border: 0,
-    borderRadius: "8px",
-    background: "#9b5de5",
-    color: "#ffffff",
-    fontWeight: "bold" as const,
-    cursor: "pointer",
-  };
+  if (!user || user.email !== ADMIN_EMAIL) {
+    return (
+      <main style={styles.page}>
+        <section style={styles.card}>
+          <h1 style={styles.heading}>Admin Login</h1>
+          <p style={styles.muted}>
+            Moner Moto Zibon × Z MELODY
+          </p>
 
-  return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "#100b20",
-        color: "#ffffff",
-        padding: "30px 16px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <div style={{ maxWidth: "850px", margin: "0 auto" }}>
-        <p style={{ color: "#c4a7ff" }}>
-          MONER MOTO ZIBON × Z MELODY
-        </p>
-
-        <h1 style={{ fontSize: "32px" }}>Admin Panel</h1>
-
-        {checking ? (
-          <p>Login check ho raha hai...</p>
-        ) : !user ? (
-          <form
-            onSubmit={login}
-            style={{
-              background: "#201735",
-              padding: "22px",
-              borderRadius: "16px",
-              marginTop: "25px",
-            }}
-          >
-            <h2>Admin Login</h2>
-            <p>Authorized admin hi login kar sakta hai.</p>
-
-            <label htmlFor="admin-email">Email</label>
+          <form onSubmit={handleLogin} style={styles.form}>
+            <label style={styles.label}>Admin Email</label>
             <input
-              id="admin-email"
               type="email"
-              required
-              autoComplete="username"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              style={fieldStyle}
+              required
+              autoComplete="username"
+              style={styles.input}
+              placeholder="Admin email"
             />
 
-            <label htmlFor="admin-password">Password</label>
+            <label style={styles.label}>Password</label>
             <input
-              id="admin-password"
               type="password"
-              required
-              autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              style={fieldStyle}
+              required
+              autoComplete="current-password"
+              style={styles.input}
+              placeholder="Your password"
             />
 
-            <button type="submit" disabled={busy} style={buttonStyle}>
+            <button disabled={busy} type="submit" style={styles.button}>
               {busy ? "Please wait..." : "Login"}
             </button>
           </form>
-        ) : (
-          <>
-            <p>Logged in: {user.email}</p>
 
-            <button
-              type="button"
-              onClick={logout}
-              disabled={busy}
-              style={buttonStyle}
+          {message && <p style={styles.message}>{message}</p>}
+
+          <a href="/" style={styles.link}>← Back to website</a>
+        </section>
+      </main>
+    );
+  }
+
+  return (
+    <main style={styles.page}>
+      <section style={styles.container}>
+        <header style={styles.header}>
+          <div>
+            <h1 style={styles.heading}>Admin Dashboard</h1>
+            <p style={styles.muted}>
+              Moner Moto Zibon × Z MELODY
+            </p>
+            <p style={styles.muted}>{user.email}</p>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            disabled={busy}
+            style={styles.logout}
+          >
+            Logout
+          </button>
+        </header>
+
+        <section style={styles.card}>
+          <h2 style={styles.subheading}>Add New Video</h2>
+          <p style={styles.muted}>
+            YouTube ya Facebook ka video link paste karo.
+          </p>
+
+          <form onSubmit={handleAddVideo} style={styles.form}>
+            <label style={styles.label}>Video Title</label>
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+              style={styles.input}
+              placeholder="Song ya video ka naam"
+            />
+
+            <label style={styles.label}>Brand / Channel</label>
+            <select
+              value={brand}
+              onChange={(event) => setBrand(event.target.value)}
+              style={styles.input}
             >
-              Logout
+              <option value="Z MELODY">Z MELODY</option>
+              <option value="Moner Moto Zibon">Moner Moto Zibon</option>
+            </select>
+
+            <label style={styles.label}>YouTube / Facebook URL</label>
+            <input
+              type="url"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              required
+              style={styles.input}
+              placeholder="https://..."
+            />
+
+            <button disabled={busy} type="submit" style={styles.button}>
+              {busy ? "Saving..." : "Save Video"}
             </button>
+          </form>
 
-            <form
-              onSubmit={addVideo}
-              style={{
-                background: "#201735",
-                padding: "22px",
-                borderRadius: "16px",
-                marginTop: "25px",
-              }}
+          {message && <p style={styles.message}>{message}</p>}
+        </section>
+
+        <section style={styles.card}>
+          <div style={styles.videoHeader}>
+            <h2 style={styles.subheading}>Saved Videos</h2>
+            <button
+              onClick={() => void loadVideos()}
+              disabled={busy}
+              style={styles.refresh}
             >
-              <h2>Add New Video</h2>
+              Refresh
+            </button>
+          </div>
 
-              <label htmlFor="video-brand">Brand</label>
-              <select
-                id="video-brand"
-                value={brand}
-                onChange={(event) => setBrand(event.target.value)}
-                style={fieldStyle}
-              >
-                <option value="Moner Moto Zibon">Moner Moto Zibon</option>
-                <option value="Z MELODY">Z MELODY</option>
-              </select>
-
-              <label htmlFor="video-title">Video title</label>
-              <input
-                id="video-title"
-                required
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="Video ka naam"
-                style={fieldStyle}
-              />
-
-              <label htmlFor="video-url">YouTube ya Facebook link</label>
-              <input
-                id="video-url"
-                type="url"
-                required
-                value={url}
-                onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://..."
-                style={fieldStyle}
-              />
-
-              <button type="submit" disabled={busy} style={buttonStyle}>
-                {busy ? "Please wait..." : "+ Add Video"}
-              </button>
-            </form>
-
-            <section style={{ marginTop: "30px" }}>
-              <h2>Saved Videos ({videos.length})</h2>
-
-              {videos.length === 0 && (
-                <p>Abhi koi video save nahi hai.</p>
-              )}
-
+          {videos.length === 0 ? (
+            <p style={styles.muted}>Abhi koi video save nahi hai.</p>
+          ) : (
+            <div style={styles.videoList}>
               {videos.map((video) => (
-                <article
-                  key={video.id}
-                  style={{
-                    background: "#201735",
-                    padding: "16px",
-                    borderRadius: "12px",
-                    marginTop: "12px",
-                    overflowWrap: "anywhere",
-                  }}
-                >
-                  <strong>{video.title}</strong>
-                  <p style={{ color: "#c4a7ff" }}>{video.brand}</p>
-
-                  <a
-                    href={video.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ color: "#c4a7ff" }}
-                  >
-                    Video kholo
-                  </a>
-
-                  <div style={{ marginTop: "14px" }}>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void deleteVideo(video.id)}
-                      style={{ ...buttonStyle, background: "#a83252" }}
+                <article key={video.id} style={styles.videoItem}>
+                  <div style={{ minWidth: 0 }}>
+                    <strong>{video.title}</strong>
+                    <p style={styles.muted}>{video.brand}</p>
+                    <a
+                      href={video.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={styles.link}
                     >
-                      Delete
-                    </button>
+                      Open video
+                    </a>
                   </div>
+
+                  <button
+                    onClick={() => void handleDelete(video.id)}
+                    disabled={busy}
+                    style={styles.delete}
+                  >
+                    Delete
+                  </button>
                 </article>
               ))}
-            </section>
-          </>
-        )}
+            </div>
+          )}
+        </section>
 
-        {message && (
-          <p role="status" style={{ marginTop: "20px" }}>
-            {message}
-          </p>
-        )}
-      </div>
+        <a href="/" style={styles.link}>← View website</a>
+      </section>
     </main>
   );
 }
+
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    padding: "32px 16px",
+    background: "#0b1020",
+    color: "#f8fafc",
+    fontFamily: "Arial, sans-serif",
+  },
+  container: {
+    maxWidth: "850px",
+    margin: "0 auto",
+  },
+  card: {
+    background: "#151d32",
+    border: "1px solid #293650",
+    borderRadius: "16px",
+    padding: "24px",
+    marginBottom: "22px",
+  },
+  heading: {
+    fontSize: "28px",
+    margin: "0 0 8px",
+  },
+  subheading: {
+    fontSize: "21px",
+    margin: "0 0 12px",
+  },
+  muted: {
+    color: "#aab7cc",
+    overflowWrap: "anywhere",
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "16px",
+    flexWrap: "wrap",
+    marginBottom: "24px",
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    marginTop: "18px",
+  },
+  label: {
+    fontSize: "14px",
+    fontWeight: 700,
+  },
+  input: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "13px",
+    borderRadius: "8px",
+    border: "1px solid #43516d",
+    background: "#0b1020",
+    color: "#ffffff",
+    fontSize: "16px",
+  },
+  button: {
+    padding: "13px 18px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#7c3aed",
+    color: "#ffffff",
+    fontWeight: 700,
+    fontSize: "16px",
+    cursor: "pointer",
+  },
+  logout: {
+    padding: "10px 16px",
+    borderRadius: "8px",
+    border: "1px solid #53627e",
+    background: "#202b42",
+    color: "#ffffff",
+    cursor: "pointer",
+  },
+  refresh: {
+    padding: "9px 13px",
+    borderRadius: "8px",
+    border: "1px solid #53627e",
+    background: "#202b42",
+    color: "#ffffff",
+    cursor: "pointer",
+  },
+  message: {
+    marginTop: "16px",
+    overflowWrap: "anywhere",
+    color: "#c4b5fd",
+  },
+  link: {
+    color: "#a5b4fc",
+    display: "inline-block",
+    marginTop: "12px",
+    overflowWrap: "anywhere",
+  },
+  videoHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
+  videoList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  videoItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "16px",
+    flexWrap: "wrap",
+    borderTop: "1px solid #293650",
+    paddingTop: "16px",
+  },
+  delete: {
+    padding: "9px 13px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#b91c1c",
+    color: "#ffffff",
+    cursor: "pointer",
+  },
+};
