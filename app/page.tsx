@@ -156,7 +156,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Videos added through Admin will appear here */}
       <VideosSection />
 
       <section className="closing-banner">
