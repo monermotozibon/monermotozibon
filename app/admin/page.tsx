@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, CSSProperties } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 
@@ -13,6 +13,67 @@ type Video = {
   title: string;
   url: string;
   brand: string;
+};
+
+const styles: Record<string, CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    padding: "30px 16px",
+    background: "#0b1020",
+    color: "#f8fafc",
+    fontFamily: "Arial, sans-serif",
+  },
+  container: { maxWidth: "850px", margin: "0 auto" },
+  card: {
+    background: "#151d32",
+    border: "1px solid #293650",
+    borderRadius: "14px",
+    padding: "22px",
+    marginBottom: "20px",
+  },
+  heading: { fontSize: "28px", margin: "0 0 8px" },
+  subheading: { fontSize: "21px", margin: "0 0 12px" },
+  muted: { color: "#aab7cc", overflowWrap: "anywhere" },
+  form: { display: "flex", flexDirection: "column", gap: "12px" },
+  label: { fontSize: "14px", fontWeight: 700 },
+  input: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "12px",
+    borderRadius: "8px",
+    border: "1px solid #43516d",
+    background: "#0b1020",
+    color: "#ffffff",
+    fontSize: "16px",
+  },
+  button: {
+    padding: "12px 16px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#7c3aed",
+    color: "#ffffff",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  secondary: {
+    padding: "10px 14px",
+    borderRadius: "8px",
+    border: "1px solid #53627e",
+    background: "#202b42",
+    color: "#ffffff",
+    cursor: "pointer",
+  },
+  link: { color: "#a5b4fc", overflowWrap: "anywhere" },
+  message: { color: "#c4b5fd", overflowWrap: "anywhere" },
+  video: {
+    borderTop: "1px solid #293650",
+    padding: "14px 0",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "12px",
+    flexWrap: "wrap",
+  },
 };
 
 export default function AdminPage() {
@@ -30,42 +91,33 @@ export default function AdminPage() {
   useEffect(() => {
     let active = true;
 
-    async function checkUser() {
-      const { data } = await supabase.auth.getSession();
+    async function checkSession() {
+      const { data, error } = await supabase.auth.getSession();
 
       if (!active) return;
 
-      const sessionUser = data.session?.user ?? null;
-
-      if (sessionUser?.email === ADMIN_EMAIL) {
-        setUser(sessionUser);
-      } else {
-        setUser(null);
+      if (error) {
+        setMessage(error.message);
       }
 
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser?.email === ADMIN_EMAIL ? currentUser : null);
       setChecking(false);
     }
 
-    void checkUser();
+    void checkSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      const sessionUser = session?.user ?? null;
-
-      if (sessionUser?.email === ADMIN_EMAIL) {
-        setUser(sessionUser);
-      } else {
-        setUser(null);
-        setVideos([]);
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser?.email === ADMIN_EMAIL ? currentUser : null);
+        setChecking(false);
       }
-
-      setChecking(false);
-    });
+    );
 
     return () => {
       active = false;
-      subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
@@ -76,8 +128,6 @@ export default function AdminPage() {
   }, [user]);
 
   async function loadVideos() {
-    setMessage("");
-
     const { data, error } = await supabase
       .from("videos")
       .select("id, title, url, brand")
@@ -97,7 +147,7 @@ export default function AdminPage() {
     setMessage("");
 
     if (email.trim().toLowerCase() !== ADMIN_EMAIL) {
-      setMessage("Sirf authorized admin email se login kar sakte hain.");
+      setMessage("Authorized admin email use karo.");
       setBusy(false);
       return;
     }
@@ -108,7 +158,7 @@ export default function AdminPage() {
     });
 
     if (error) {
-      setMessage("Login failed: " + error.message);
+      setMessage("Login error: " + error.message);
     } else if (data.user?.email !== ADMIN_EMAIL) {
       await supabase.auth.signOut();
       setMessage("Is account ko admin access nahi hai.");
@@ -121,33 +171,33 @@ export default function AdminPage() {
     setBusy(false);
   }
 
-  function isAllowedVideoUrl(value: string) {
+  function validVideoUrl(value: string) {
     try {
       const parsed = new URL(value);
       const host = parsed.hostname.toLowerCase();
 
-      if (parsed.protocol !== "https:") return false;
-
       return (
-        host === "youtube.com" ||
-        host.endsWith(".youtube.com") ||
-        host === "youtu.be" ||
-        host === "facebook.com" ||
-        host.endsWith(".facebook.com") ||
-        host === "fb.watch" ||
-        host.endsWith(".fb.watch")
+        parsed.protocol === "https:" &&
+        (
+          host === "youtube.com" ||
+          host.endsWith(".youtube.com") ||
+          host === "youtu.be" ||
+          host === "facebook.com" ||
+          host.endsWith(".facebook.com") ||
+          host === "fb.watch"
+        )
       );
     } catch {
       return false;
     }
   }
 
-  async function handleAddVideo(event: FormEvent<HTMLFormElement>) {
+  async function handleAdd(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
 
     if (user?.email !== ADMIN_EMAIL) {
-      setMessage("Admin login required.");
+      setMessage("Pehle admin login karo.");
       return;
     }
 
@@ -156,8 +206,8 @@ export default function AdminPage() {
       return;
     }
 
-    if (!isAllowedVideoUrl(url.trim())) {
-      setMessage("Valid HTTPS YouTube ya Facebook video link dalo.");
+    if (!validVideoUrl(url.trim())) {
+      setMessage("Valid HTTPS YouTube ya Facebook link dalo.");
       return;
     }
 
@@ -170,9 +220,9 @@ export default function AdminPage() {
     });
 
     if (error) {
-      setMessage("Video save nahi hua: " + error.message);
+      setMessage("Save error: " + error.message);
     } else {
-      setMessage("Video successfully save ho gaya!");
+      setMessage("Video save ho gaya!");
       setTitle("");
       setUrl("");
       await loadVideos();
@@ -183,23 +233,16 @@ export default function AdminPage() {
 
   async function handleDelete(id: number) {
     if (user?.email !== ADMIN_EMAIL) return;
-
-    const confirmed = window.confirm(
-      "Kya aap is video ko delete karna chahte hain?"
-    );
-
-    if (!confirmed) return;
+    if (!window.confirm("Kya aap is video ko delete karna chahte hain?")) {
+      return;
+    }
 
     setBusy(true);
-    setMessage("");
 
-    const { error } = await supabase
-      .from("videos")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("videos").delete().eq("id", id);
 
     if (error) {
-      setMessage("Delete nahi hua: " + error.message);
+      setMessage("Delete error: " + error.message);
     } else {
       setMessage("Video delete ho gaya.");
       await loadVideos();
@@ -213,7 +256,7 @@ export default function AdminPage() {
     const { error } = await supabase.auth.signOut();
 
     if (error) {
-      setMessage("Logout failed: " + error.message);
+      setMessage("Logout error: " + error.message);
     } else {
       setUser(null);
       setVideos([]);
@@ -226,7 +269,7 @@ export default function AdminPage() {
   if (checking) {
     return (
       <main style={styles.page}>
-        <p>Checking admin login...</p>
+        <p>Admin login check ho raha hai...</p>
       </main>
     );
   }
@@ -234,43 +277,38 @@ export default function AdminPage() {
   if (!user || user.email !== ADMIN_EMAIL) {
     return (
       <main style={styles.page}>
-        <section style={styles.card}>
+        <section style={{ ...styles.card, maxWidth: "420px", margin: "40px auto" }}>
           <h1 style={styles.heading}>Admin Login</h1>
-          <p style={styles.muted}>
-            Moner Moto Zibon × Z MELODY
-          </p>
+          <p style={styles.muted}>Moner Moto Zibon × Z MELODY</p>
 
           <form onSubmit={handleLogin} style={styles.form}>
             <label style={styles.label}>Admin Email</label>
             <input
               type="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="username"
               style={styles.input}
-              placeholder="Admin email"
             />
 
             <label style={styles.label}>Password</label>
             <input
               type="password"
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
               style={styles.input}
-              placeholder="Your password"
             />
 
-            <button disabled={busy} type="submit" style={styles.button}>
+            <button type="submit" disabled={busy} style={styles.button}>
               {busy ? "Please wait..." : "Login"}
             </button>
           </form>
 
           {message && <p style={styles.message}>{message}</p>}
-
-          <a href="/" style={styles.link}>← Back to website</a>
+          <p><a href="/" style={styles.link}>Back to website</a></p>
         </section>
       </main>
     );
@@ -278,20 +316,26 @@ export default function AdminPage() {
 
   return (
     <main style={styles.page}>
-      <section style={styles.container}>
-        <header style={styles.header}>
+      <div style={styles.container}>
+        <header
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "12px",
+            flexWrap: "wrap",
+            marginBottom: "24px",
+          }}
+        >
           <div>
             <h1 style={styles.heading}>Admin Dashboard</h1>
-            <p style={styles.muted}>
-              Moner Moto Zibon × Z MELODY
-            </p>
+            <p style={styles.muted}>Moner Moto Zibon × Z MELODY</p>
             <p style={styles.muted}>{user.email}</p>
           </div>
-
           <button
             onClick={handleLogout}
             disabled={busy}
-            style={styles.logout}
+            style={styles.secondary}
           >
             Logout
           </button>
@@ -299,15 +343,11 @@ export default function AdminPage() {
 
         <section style={styles.card}>
           <h2 style={styles.subheading}>Add New Video</h2>
-          <p style={styles.muted}>
-            YouTube ya Facebook ka video link paste karo.
-          </p>
-
-          <form onSubmit={handleAddVideo} style={styles.form}>
+          <form onSubmit={handleAdd} style={styles.form}>
             <label style={styles.label}>Video Title</label>
             <input
               value={title}
-              onChange={(event) => setTitle(event.target.value)}
+              onChange={(e) => setTitle(e.target.value)}
               required
               style={styles.input}
               placeholder="Song ya video ka naam"
@@ -316,24 +356,24 @@ export default function AdminPage() {
             <label style={styles.label}>Brand / Channel</label>
             <select
               value={brand}
-              onChange={(event) => setBrand(event.target.value)}
+              onChange={(e) => setBrand(e.target.value)}
               style={styles.input}
             >
               <option value="Z MELODY">Z MELODY</option>
               <option value="Moner Moto Zibon">Moner Moto Zibon</option>
             </select>
 
-            <label style={styles.label}>YouTube / Facebook URL</label>
+            <label style={styles.label}>YouTube / Facebook Link</label>
             <input
               type="url"
               value={url}
-              onChange={(event) => setUrl(event.target.value)}
+              onChange={(e) => setUrl(e.target.value)}
               required
               style={styles.input}
               placeholder="https://..."
             />
 
-            <button disabled={busy} type="submit" style={styles.button}>
+            <button type="submit" disabled={busy} style={styles.button}>
               {busy ? "Saving..." : "Save Video"}
             </button>
           </form>
@@ -342,12 +382,19 @@ export default function AdminPage() {
         </section>
 
         <section style={styles.card}>
-          <div style={styles.videoHeader}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px",
+            }}
+          >
             <h2 style={styles.subheading}>Saved Videos</h2>
             <button
               onClick={() => void loadVideos()}
               disabled={busy}
-              style={styles.refresh}
+              style={styles.secondary}
             >
               Refresh
             </button>
@@ -356,164 +403,37 @@ export default function AdminPage() {
           {videos.length === 0 ? (
             <p style={styles.muted}>Abhi koi video save nahi hai.</p>
           ) : (
-            <div style={styles.videoList}>
-              {videos.map((video) => (
-                <article key={video.id} style={styles.videoItem}>
-                  <div style={{ minWidth: 0 }}>
-                    <strong>{video.title}</strong>
-                    <p style={styles.muted}>{video.brand}</p>
-                    <a
-                      href={video.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={styles.link}
-                    >
-                      Open video
-                    </a>
-                  </div>
-
-                  <button
-                    onClick={() => void handleDelete(video.id)}
-                    disabled={busy}
-                    style={styles.delete}
+            videos.map((video) => (
+              <article key={video.id} style={styles.video}>
+                <div style={{ minWidth: 0 }}>
+                  <strong>{video.title}</strong>
+                  <p style={styles.muted}>{video.brand}</p>
+                  <a
+                    href={video.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={styles.link}
                   >
-                    Delete
-                  </button>
-                </article>
-              ))}
-            </div>
+                    Open video
+                  </a>
+                </div>
+                <button
+                  onClick={() => void handleDelete(video.id)}
+                  disabled={busy}
+                  style={{
+                    ...styles.secondary,
+                    background: "#991b1b",
+                  }}
+                >
+                  Delete
+                </button>
+              </article>
+            ))
           )}
         </section>
 
-        <a href="/" style={styles.link}>← View website</a>
-      </section>
+        <a href="/" style={styles.link}>View website</a>
+      </div>
     </main>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    padding: "32px 16px",
-    background: "#0b1020",
-    color: "#f8fafc",
-    fontFamily: "Arial, sans-serif",
-  },
-  container: {
-    maxWidth: "850px",
-    margin: "0 auto",
-  },
-  card: {
-    background: "#151d32",
-    border: "1px solid #293650",
-    borderRadius: "16px",
-    padding: "24px",
-    marginBottom: "22px",
-  },
-  heading: {
-    fontSize: "28px",
-    margin: "0 0 8px",
-  },
-  subheading: {
-    fontSize: "21px",
-    margin: "0 0 12px",
-  },
-  muted: {
-    color: "#aab7cc",
-    overflowWrap: "anywhere",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "16px",
-    flexWrap: "wrap",
-    marginBottom: "24px",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-    marginTop: "18px",
-  },
-  label: {
-    fontSize: "14px",
-    fontWeight: 700,
-  },
-  input: {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "13px",
-    borderRadius: "8px",
-    border: "1px solid #43516d",
-    background: "#0b1020",
-    color: "#ffffff",
-    fontSize: "16px",
-  },
-  button: {
-    padding: "13px 18px",
-    borderRadius: "8px",
-    border: "none",
-    background: "#7c3aed",
-    color: "#ffffff",
-    fontWeight: 700,
-    fontSize: "16px",
-    cursor: "pointer",
-  },
-  logout: {
-    padding: "10px 16px",
-    borderRadius: "8px",
-    border: "1px solid #53627e",
-    background: "#202b42",
-    color: "#ffffff",
-    cursor: "pointer",
-  },
-  refresh: {
-    padding: "9px 13px",
-    borderRadius: "8px",
-    border: "1px solid #53627e",
-    background: "#202b42",
-    color: "#ffffff",
-    cursor: "pointer",
-  },
-  message: {
-    marginTop: "16px",
-    overflowWrap: "anywhere",
-    color: "#c4b5fd",
-  },
-  link: {
-    color: "#a5b4fc",
-    display: "inline-block",
-    marginTop: "12px",
-    overflowWrap: "anywhere",
-  },
-  videoHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "12px",
-    flexWrap: "wrap",
-  },
-  videoList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  },
-  videoItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "16px",
-    flexWrap: "wrap",
-    borderTop: "1px solid #293650",
-    paddingTop: "16px",
-  },
-  delete: {
-    padding: "9px 13px",
-    borderRadius: "8px",
-    border: "none",
-    background: "#b91c1c",
-    color: "#ffffff",
-    cursor: "pointer",
-  },
-};
