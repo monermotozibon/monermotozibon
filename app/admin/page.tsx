@@ -1,4 +1,4 @@
-```tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -44,23 +44,33 @@ export default function AdminPage() {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    async function checkSession() {
+      const { data, error } = await supabase.auth.getSession();
+
       if (!active) return;
+
+      if (error) {
+        setMessage("Login check nahi ho saka.");
+        setChecking(false);
+        return;
+      }
 
       const currentUser = data.session?.user ?? null;
 
       if (currentUser?.email === ADMIN_EMAIL) {
         setUser(currentUser);
-        loadVideos();
+        await loadVideos();
       } else {
         if (currentUser) {
-          void supabase.auth.signOut();
+          await supabase.auth.signOut();
         }
         setUser(null);
       }
 
-      setChecking(false);
-    });
+      if (active) setChecking(false);
+    }
+
+    void checkSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (_event, session) => {
@@ -75,6 +85,7 @@ export default function AdminPage() {
           }, 0);
         } else {
           setUser(null);
+          setVideos([]);
         }
       }
     );
@@ -85,39 +96,55 @@ export default function AdminPage() {
     };
   }, []);
 
-  async function login(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function login(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setBusy(true);
     setMessage("");
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
 
-    if (error) {
-      setMessage("Login nahi hua. Email/password check karein.");
-    } else if (data.user?.email !== ADMIN_EMAIL) {
-      await supabase.auth.signOut();
-      setMessage("Is account ko admin access nahi hai.");
-    } else {
-      setPassword("");
-      setMessage("Login successful!");
+      if (error) {
+        setMessage("Login fail hua. Email aur password check karein.");
+      } else if (data.user?.email !== ADMIN_EMAIL) {
+        await supabase.auth.signOut();
+        setMessage("Is account ko admin access nahi hai.");
+      } else {
+        setPassword("");
+        setUser(data.user);
+        setMessage("Login successful!");
+        await loadVideos();
+      }
+    } catch {
+      setMessage("Connection error. Supabase settings check karein.");
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   }
 
-  async function addVideo(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function addVideo(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage("");
 
-    if (!title.trim() || !url.trim()) {
-      setMessage("Video ka title aur link dono bharein.");
+    if (!user || user.email !== ADMIN_EMAIL) {
+      setMessage("Pehle admin login karein.");
+      return;
+    }
+
+    const cleanTitle = title.trim();
+    const cleanUrl = url.trim();
+
+    if (!cleanTitle || !cleanUrl) {
+      setMessage("Video title aur link dono zaroori hain.");
       return;
     }
 
     try {
-      const parsed = new URL(url.trim());
+      const parsed = new URL(cleanUrl);
+      const host = parsed.hostname.toLowerCase();
 
       const validHost = [
         "youtube.com",
@@ -130,10 +157,10 @@ export default function AdminPage() {
         "m.facebook.com",
         "fb.watch",
         "www.fb.watch",
-      ].includes(parsed.hostname.toLowerCase());
+      ].includes(host);
 
       if (parsed.protocol !== "https:" || !validHost) {
-        setMessage("Sahi HTTPS YouTube ya Facebook link daalein.");
+        setMessage("Valid HTTPS YouTube ya Facebook link daalein.");
         return;
       }
     } catch {
@@ -142,77 +169,89 @@ export default function AdminPage() {
     }
 
     setBusy(true);
-    setMessage("");
 
-    const { error } = await supabase.from("videos").insert({
-      title: title.trim(),
-      url: url.trim(),
-      brand,
-    });
+    try {
+      const { error } = await supabase.from("videos").insert({
+        title: cleanTitle,
+        url: cleanUrl,
+        brand,
+      });
 
-    if (error) {
-      setMessage("Save nahi hua: " + error.message);
-    } else {
-      setTitle("");
-      setUrl("");
-      setMessage("Video database mein save ho gaya!");
-      await loadVideos();
+      if (error) {
+        setMessage("Save error: " + error.message);
+      } else {
+        setTitle("");
+        setUrl("");
+        setMessage("Video database mein save ho gaya!");
+        await loadVideos();
+      }
+    } catch {
+      setMessage("Video save nahi hua. Dobara koshish karein.");
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   }
 
   async function deleteVideo(id: number) {
-    if (!window.confirm("Kya aap is video ko delete karna chahte hain?")) {
-      return;
-    }
+    if (!user || user.email !== ADMIN_EMAIL) return;
+
+    const confirmed = window.confirm(
+      "Kya aap is video ko delete karna chahte hain?"
+    );
+
+    if (!confirmed) return;
 
     setBusy(true);
+    setMessage("");
 
-    const { error } = await supabase
-      .from("videos")
-      .delete()
-      .eq("id", id);
+    try {
+      const { error } = await supabase
+        .from("videos")
+        .delete()
+        .eq("id", id);
 
-    if (error) {
-      setMessage("Delete nahi hua: " + error.message);
-    } else {
-      setMessage("Video delete ho gaya.");
-      await loadVideos();
+      if (error) {
+        setMessage("Delete error: " + error.message);
+      } else {
+        setMessage("Video delete ho gaya.");
+        await loadVideos();
+      }
+    } catch {
+      setMessage("Video delete nahi hua.");
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   }
 
   async function logout() {
     await supabase.auth.signOut();
     setUser(null);
     setVideos([]);
-    setMessage("");
+    setPassword("");
+    setMessage("Logout ho gaya.");
   }
 
   const fieldStyle = {
     display: "block",
     width: "100%",
     boxSizing: "border-box" as const,
-    padding: 13,
-    marginTop: 8,
-    marginBottom: 18,
-    borderRadius: 8,
+    padding: "12px",
+    marginTop: "8px",
+    marginBottom: "18px",
+    borderRadius: "8px",
     border: "1px solid #57466f",
     background: "#130e22",
-    color: "white",
+    color: "#ffffff",
   };
 
   const buttonStyle = {
     padding: "12px 18px",
     border: 0,
-    borderRadius: 8,
+    borderRadius: "8px",
     background: "#9b5de5",
-    color: "white",
+    color: "#ffffff",
     fontWeight: "bold" as const,
     cursor: "pointer",
-    marginTop: 12,
   };
 
   return (
@@ -220,66 +259,69 @@ export default function AdminPage() {
       style={{
         minHeight: "100vh",
         background: "#100b20",
-        color: "white",
+        color: "#ffffff",
         padding: "30px 16px",
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <div style={{ maxWidth: 850, margin: "0 auto" }}>
+      <div style={{ maxWidth: "850px", margin: "0 auto" }}>
         <p style={{ color: "#c4a7ff" }}>
           MONER MOTO ZIBON × Z MELODY
         </p>
 
-        <h1 style={{ fontSize: 32 }}>Admin Panel</h1>
+        <h1 style={{ fontSize: "32px" }}>Admin Panel</h1>
 
         {checking ? (
-          <p>Checking login...</p>
+          <p>Login check ho raha hai...</p>
         ) : !user ? (
           <form
             onSubmit={login}
             style={{
               background: "#201735",
-              padding: 22,
-              borderRadius: 16,
-              marginTop: 25,
+              padding: "22px",
+              borderRadius: "16px",
+              marginTop: "25px",
             }}
           >
             <h2>Admin Login</h2>
-            <p>Sirf authorized admin login kar sakta hai.</p>
+            <p>Authorized admin hi login kar sakta hai.</p>
 
-            <label>Email</label>
+            <label htmlFor="admin-email">Email</label>
             <input
+              id="admin-email"
               type="email"
               required
+              autoComplete="username"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               style={fieldStyle}
             />
 
-            <label>Password</label>
+            <label htmlFor="admin-password">Password</label>
             <input
+              id="admin-password"
               type="password"
               required
+              autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               style={fieldStyle}
             />
 
-            <button
-              type="submit"
-              disabled={busy}
-              style={buttonStyle}
-            >
+            <button type="submit" disabled={busy} style={buttonStyle}>
               {busy ? "Please wait..." : "Login"}
             </button>
-
-            {message && <p>{message}</p>}
           </form>
         ) : (
           <>
             <p>Logged in: {user.email}</p>
 
-            <button onClick={logout} style={buttonStyle}>
+            <button
+              type="button"
+              onClick={logout}
+              disabled={busy}
+              style={buttonStyle}
+            >
               Logout
             </button>
 
@@ -287,52 +329,51 @@ export default function AdminPage() {
               onSubmit={addVideo}
               style={{
                 background: "#201735",
-                padding: 22,
-                borderRadius: 16,
-                marginTop: 25,
+                padding: "22px",
+                borderRadius: "16px",
+                marginTop: "25px",
               }}
             >
               <h2>Add New Video</h2>
 
-              <label>Brand select karein</label>
+              <label htmlFor="video-brand">Brand</label>
               <select
+                id="video-brand"
                 value={brand}
-                onChange={(e) => setBrand(e.target.value)}
+                onChange={(event) => setBrand(event.target.value)}
                 style={fieldStyle}
               >
-                <option>Moner Moto Zibon</option>
-                <option>Z MELODY</option>
+                <option value="Moner Moto Zibon">Moner Moto Zibon</option>
+                <option value="Z MELODY">Z MELODY</option>
               </select>
 
-              <label>Video title</label>
+              <label htmlFor="video-title">Video title</label>
               <input
+                id="video-title"
                 required
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(event) => setTitle(event.target.value)}
                 placeholder="Video ka naam"
                 style={fieldStyle}
               />
 
-              <label>YouTube ya Facebook link</label>
+              <label htmlFor="video-url">YouTube ya Facebook link</label>
               <input
-                required
+                id="video-url"
                 type="url"
+                required
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(event) => setUrl(event.target.value)}
                 placeholder="https://..."
                 style={fieldStyle}
               />
 
-              <button
-                type="submit"
-                disabled={busy}
-                style={buttonStyle}
-              >
+              <button type="submit" disabled={busy} style={buttonStyle}>
                 {busy ? "Please wait..." : "+ Add Video"}
               </button>
             </form>
 
-            <section style={{ marginTop: 30 }}>
+            <section style={{ marginTop: "30px" }}>
               <h2>Saved Videos ({videos.length})</h2>
 
               {videos.length === 0 && (
@@ -340,13 +381,13 @@ export default function AdminPage() {
               )}
 
               {videos.map((video) => (
-                <div
+                <article
                   key={video.id}
                   style={{
                     background: "#201735",
-                    padding: 16,
-                    borderRadius: 12,
-                    marginTop: 12,
+                    padding: "16px",
+                    borderRadius: "12px",
+                    marginTop: "12px",
                     overflowWrap: "anywhere",
                   }}
                 >
@@ -362,28 +403,28 @@ export default function AdminPage() {
                     Video kholo
                   </a>
 
-                  <br />
-
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => deleteVideo(video.id)}
-                    style={{
-                      ...buttonStyle,
-                      background: "#a83252",
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
+                  <div style={{ marginTop: "14px" }}>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void deleteVideo(video.id)}
+                      style={{ ...buttonStyle, background: "#a83252" }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
               ))}
             </section>
           </>
         )}
 
-        {message && <p role="status">{message}</p>}
+        {message && (
+          <p role="status" style={{ marginTop: "20px" }}>
+            {message}
+          </p>
+        )}
       </div>
     </main>
   );
 }
-```
