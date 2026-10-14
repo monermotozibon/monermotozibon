@@ -1,4 +1,4 @@
-
+```tsx
 import VideosSection from "./VideosSection";
 
 const socialLinks = [
@@ -92,7 +92,18 @@ export default function Home() {
             className="brand-choice-card moner-brand"
             href="/moner-moto-zibon"
           >
-            <div className="brand-logo moner-logo">♡</div>
+            <div className="brand-logo moner-logo">
+              <img
+                src="/Moner%20Moto%20Zibon%20%20logo.jpeg"
+                alt="Moner Moto Zibon Logo"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  borderRadius: "12px",
+                }}
+              />
+            </div>
 
             <span className="brand-label">
               QUOTES · REELS · FEELINGS
@@ -114,7 +125,18 @@ export default function Home() {
             className="brand-choice-card melody-brand"
             href="/z-melody"
           >
-            <div className="brand-logo melody-logo">♫</div>
+            <div className="brand-logo melody-logo">
+              <img
+                src="/Z%20MELODY%20%20logo.jpeg"
+                alt="Z MELODY Logo"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "contain",
+                  borderRadius: "12px",
+                }}
+              />
+            </div>
 
             <span className="brand-label">
               SONGS · MUSIC · LO-FI
@@ -169,3 +191,4 @@ export default function Home() {
     </main>
   );
 }
+```
