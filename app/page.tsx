@@ -22,11 +22,7 @@ export default function Home() {
 
       <header className="site-header">
         <a href="/" className="logo">
-          <img
-  src="/Moner%20Moto%20Zibon%20%20logo.jpeg"
-  alt="Moner Moto Zibon Logo"
-  className="logo-image"
-/>
+    <span className="logo-icon">MZ</span>    
           <span>
             <strong>MONER MOTO ZIBON</strong>
             <small>× Z MELODY</small>
